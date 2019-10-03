@@ -1,5 +1,5 @@
 <!--
-Copyright 2017 Adobe Systems Incorporated
+Copyright 2017 Adobe
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ The following properties are written to JCR for this Form Options component and 
 
 ## Client Libraries
 The component provides a `core.wcm.components.form.options.v2.editor` editor client library category that includes
-JavaScript handling for dialog interaction. It is already included by its edit dialog.
+CSS for dialog style adjustments. It is already included by its edit dialog.
 
 ## BEM Description
 ```
@@ -50,6 +50,7 @@ BLOCK cmp-form-options
     ELEMENT cmp-form-options__field
         MOD cmp-form-options__field--checkbox
         MOD cmp-form-options__field--radio
+    ELEMENT cmp-form-options__field-description
     ELEMENT cmp-form-options__label
     ELEMENT cmp-form-options__drop-down-field
     ELEMENT cmp-form-options__multi-drop-down-field

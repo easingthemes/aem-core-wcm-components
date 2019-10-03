@@ -1,5 +1,5 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Copyright 2017 Adobe Systems Incorporated
+ ~ Copyright 2017 Adobe
  ~
  ~ Licensed under the Apache License, Version 2.0 (the "License");
  ~ you may not use this file except in compliance with the License.
@@ -20,12 +20,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
-
-import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
@@ -39,6 +38,7 @@ import org.apache.sling.models.annotations.injectorspecific.ScriptVariable;
 import org.apache.sling.models.annotations.injectorspecific.Self;
 import org.apache.sling.models.annotations.injectorspecific.SlingObject;
 import org.apache.sling.models.annotations.injectorspecific.ValueMapValue;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,7 +172,7 @@ public class ListImpl implements List {
         return dateFormatString;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getExportedType() {
         return resource.getResourceType();
@@ -308,6 +308,9 @@ public class ListImpl implements List {
 
     private Page getRootPage(String fieldName) {
         String parentPath = properties.get(fieldName, currentPage.getPath());
+        if (StringUtils.isBlank(parentPath)) {
+            parentPath = currentPage.getPath();
+        }
         return pageManager.getContainingPage(resourceResolver.getResource(parentPath));
     }
 
@@ -391,9 +394,11 @@ public class ListImpl implements List {
         public int compare(Page item1, Page item2) {
             int i = 0;
             if (orderBy == OrderBy.MODIFIED) {
-                i = item1.getLastModified().compareTo(item2.getLastModified());
+                // getLastModified may return null, define null to be after nonnull values
+                i = ObjectUtils.compare(item1.getLastModified(), item2.getLastModified(), true);
             } else if (orderBy == OrderBy.TITLE) {
-                i = item1.getTitle().compareTo(item2.getTitle());
+                // getTitle may return null, define null to be greater than nonnull values
+                i = ObjectUtils.compare(item1.getTitle(), item2.getTitle(), true);
             }
 
             if (sortOrder == SortOrder.DESC) {

@@ -1,0 +1,19 @@
+{
+  "title": "Teaser",
+  "description": "Description",
+  "actionsEnabled": true,
+  "imageLinkHidden": false,
+  "titleLinkHidden": false,
+  "actions": [
+    {
+      "title": "Adobe",
+      "url": "http://www.adobe.com"
+    },
+    {
+      "title": "Teasers",
+      "url": "/core/content/teasers.html"
+    }
+  ],
+  "imagePath": "/core/content/teasers/_jcr_content/root/responsivegrid/teaser-7.coreimg.png/1490005239000/adobe-systems-logo-and-wordmark.png",
+  ":type": "core/wcm/components/teaser/v1/teaser"
+}

@@ -1,5 +1,5 @@
 <!--
-Copyright 2017 Adobe Systems Incorporated
+Copyright 2017 Adobe
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ List component written in HTL that renders a configurable collection of items or
   * List tagged items
   * List query result
   * List static items
-* Ordering, pagination and limit
+* Ordering and limit
 * Styles
 
 ### Use Object

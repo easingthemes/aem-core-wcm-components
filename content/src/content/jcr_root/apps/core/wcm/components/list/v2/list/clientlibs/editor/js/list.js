@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 Adobe Systems Incorporated
+ * Copyright 2016 Adobe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-/*global
+/* global
     Granite, Coral
  */
-(function (document, $, Coral) {
+(function(document, $, Coral) {
     "use strict";
 
-    $(document).on("foundation-contentloaded", function (e) {
-        $(".cmp-list__editor coral-select.cq-dialog-dropdown-showhide", e.target).each(function (i, element) {
+    $(document).on("foundation-contentloaded", function(e) {
+        $(".cmp-list__editor coral-select.cq-dialog-dropdown-showhide", e.target).each(function(i, element) {
             var target = $(element).data("cqDialogDropdownShowhideTarget");
             if (target) {
-                Coral.commons.ready(element, function (component) {
+                Coral.commons.ready(element, function(component) {
                     showHide(component, target);
-                    component.on("change", function () {
+                    component.on("change", function() {
                         showHide(component, target);
                     });
                 });

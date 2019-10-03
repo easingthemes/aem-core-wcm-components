@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 Adobe Systems Incorporated
+ * Copyright 2016 Adobe
  *
  * Licensed under the Apache License, Version 2.0 (the 'License');
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-(function ($) {
-    'use strict';
+(function($) {
+    "use strict";
 
-    var BUTTON_NAME = '.cmp-button--editor-name';
-    var BUTTON_VALUE = '.cmp-button--editor-value';
-    var PROP_ERROR_MESSAGE = 'error-message';
+    var BUTTON_NAME = ".cmp-button--editor-name";
+    var BUTTON_VALUE = ".cmp-button--editor-value";
+    var PROP_ERROR_MESSAGE = "error-message";
 
     $.validator.register({
         selector: BUTTON_NAME,
-        validate: function (el) {
-            var valueInput = el.closest('form').find(BUTTON_VALUE);
-            if (valueInput.val() !== '') {
-                if (el.val() === '') {
+        validate: function(el) {
+            var valueInput = el.closest("form").find(BUTTON_VALUE);
+            if (valueInput.val() !== "") {
+                if (el.val() === "") {
                     return el.data(PROP_ERROR_MESSAGE);
                 }
             }

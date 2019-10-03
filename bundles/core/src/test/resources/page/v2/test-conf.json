@@ -34,7 +34,11 @@
                             "sling:resourceType": "nt:unstructured",
                             "coretest-product-page": {
                                 "clientlibs": [
-                                    "coretest.product-page"
+                                    "coretest.product-page",
+                                    "coretest.product-page-js-head"
+                                ],
+                                "clientlibsJsHead": [
+                                    "coretest.product-page-js-head"
                                 ],
                                 "appResourcesClientlib": "coretest.product-page.appResources",
                                 "jcr:description": "Policy for product pages",
@@ -120,7 +124,7 @@
                 "structure": {
                     "jcr:content": {
                         "cq:deviceGroups": [
-                            "/etc/mobile/groups/responsive"
+                            "mobile/groups/responsive"
                         ],
                         "cq:responsive": {
                             "breakpoints": {

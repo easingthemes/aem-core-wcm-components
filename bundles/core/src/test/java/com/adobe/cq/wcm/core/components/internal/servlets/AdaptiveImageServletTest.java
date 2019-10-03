@@ -1,5 +1,5 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Copyright 2017 Adobe Systems Incorporated
+ ~ Copyright 2017 Adobe
  ~
  ~ Licensed under the Apache License, Version 2.0 (the "License");
  ~ you may not use this file except in compliance with the License.
@@ -18,12 +18,9 @@ package com.adobe.cq.wcm.core.components.internal.servlets;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 
@@ -35,74 +32,66 @@ import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.testing.mock.sling.servlet.MockRequestPathInfo;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletRequest;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletResponse;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.adobe.cq.wcm.core.components.internal.models.v1.AbstractImageTest;
+import com.adobe.cq.wcm.core.components.internal.models.v1.ImageImpl;
 import com.day.cq.dam.api.Rendition;
 import com.day.cq.dam.api.handler.AssetHandler;
 import com.day.cq.dam.api.handler.store.AssetStore;
-import com.day.cq.wcm.api.policies.ContentPolicy;
-import com.day.cq.wcm.api.policies.ContentPolicyMapping;
+import com.day.cq.dam.commons.handler.StandardImageHandler;
+import com.day.image.Layer;
+import io.wcm.testing.mock.aem.junit5.AemContextExtension;
+import uk.org.lidalia.slf4jtest.TestLogger;
+import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 
-public class AdaptiveImageServletTest extends AbstractImageTest {
+@ExtendWith(AemContextExtension.class)
+class AdaptiveImageServletTest extends AbstractImageTest {
 
     private static String TEST_BASE = "/image";
 
     private AdaptiveImageServlet servlet;
     private static final int ADAPTIVE_IMAGE_SERVLET_DEFAULT_RESIZE_WIDTH = 1280;
+    private TestLogger testLogger;
 
-    @BeforeClass
-    public static void setUp() {
-        internalSetUp(CONTEXT, TEST_BASE);
-    }
-
-    @Before
-    public void init() throws IOException {
-        resourceResolver = CONTEXT.resourceResolver();
-        servlet = new AdaptiveImageServlet();
-        Whitebox.setInternalState(servlet, "mimeTypeService", mockedMimeTypeService);
+    @BeforeEach
+    void setUp() throws IOException {
+        internalSetUp(TEST_BASE);
+        resourceResolver = context.resourceResolver();
         AssetHandler assetHandler = mock(AssetHandler.class);
         AssetStore assetStore = mock(AssetStore.class);
         when(assetStore.getAssetHandler(anyString())).thenReturn(assetHandler);
         when(assetHandler.getImage(any(Rendition.class))).thenAnswer(invocation -> {
-            Rendition rendition = invocation.getArgumentAt(0, Rendition.class);
+            Rendition rendition = invocation.getArgument(0);
             return ImageIO.read(rendition.getStream());
         });
-        Whitebox.setInternalState(servlet, "assetStore", assetStore);
-        activateServlet(servlet);
+        servlet = new AdaptiveImageServlet(mockedMimeTypeService, assetStore, ADAPTIVE_IMAGE_SERVLET_DEFAULT_RESIZE_WIDTH);
+        testLogger = TestLoggerFactory.getTestLogger(AdaptiveImageServlet.class);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         resourceResolver = null;
         servlet = null;
+        TestLoggerFactory.clear();
     }
 
     @Test
-    public void testRequestWithWidthDesignAllowed() throws Exception {
+    void testRequestWithWidthDesignAllowed() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(IMAGE0_PATH,
-                "img.800", "png");
+                "img.90.800", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"600","700","800"}, "jpegQuality",
+                90);
         servlet.doGet(request, response);
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(response.getOutput());
         BufferedImage image = ImageIO.read(byteArrayInputStream);
@@ -113,14 +102,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testRequestWithWidthDesignNotAllowed() throws Exception {
+    void testRequestWithWidthDesignNotAllowed() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img.1000", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"600","700","800"});
         servlet.doGet(request, response);
         assertEquals("Expected a 404 response when the design does not allow the requested width to be rendered.", HttpServletResponse
                 .SC_NOT_FOUND, response.getStatus());
@@ -128,7 +115,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testRequestWithWidthNoDesign() throws Exception {
+    void testRequestWithWidthNoDesign() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img.800", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -140,14 +127,11 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testRequestNoWidthWithDesign() throws Exception {
+    void testRequestNoWidthWithDesign() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = spy(requestResponsePair.getRight());
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
         servlet.doGet(request, response);
         verify(response).setContentType("image/png");
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(response.getOutput());
@@ -159,7 +143,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
 
 
     @Test
-    public void testRequestNoWidthNoDesign() throws Exception {
+    void testRequestNoWidthNoDesign() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -175,9 +159,9 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testWrongNumberOfSelectors() throws Exception {
+    void testWrongNumberOfSelectors() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
-                prepareRequestResponsePair(IMAGE0_PATH, "img.1.1", "png");
+                prepareRequestResponsePair(IMAGE0_PATH, "img.1.2.3", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
         servlet.doGet(request, response);
@@ -187,7 +171,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testInvalidWidthSelector() throws Exception {
+    void testInvalidWidthSelector() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img.full", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -199,16 +183,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testWithInvalidDesignWidth() throws Exception {
-        Logger logger = spy(LoggerFactory.getLogger("FakeLogger"));
-        setFinalStatic(AdaptiveImageServlet.class.getDeclaredField("LOGGER"), logger);
+    void testWithInvalidDesignWidth() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE1_PATH, "img.700", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"600","700","invalid"});
         servlet.doGet(request, response);
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(response.getOutput());
         BufferedImage image = ImageIO.read(byteArrayInputStream);
@@ -216,15 +196,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
         Dimension actualDimension = new Dimension(image.getWidth(), image.getHeight());
         assertEquals("Expected image rendered at requested size.", expectedDimension, actualDimension);
         assertEquals("Expected a PNG image.", "image/png", response.getContentType());
-        verify(logger).warn(
-                "One of the configured widths ({}) from the {} content policy is not a valid Integer.",
-                "invalid",
-                "/conf/coretest/settings/wcm/policies/coretest/components/content/image/policy_1478854677327"
-        );
+        assertThat(testLogger.getLoggingEvents(), hasItem(warn("One of the configured widths ({}) from the {} content policy is not a " +
+                "valid Integer.", "invalid", "/conf/$aem-mock$/settings/wcm/policies/core/wcm/components/image/v1/image/$mock-policy")));
     }
 
     @Test
-    public void testWithInvalidFileReference() throws Exception {
+    void testWithInvalidFileReference() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE2_PATH, "img", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -236,7 +213,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testGIFFileDirectStream() throws Exception {
+    void testGIFFileDirectStream() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE5_PATH, 1489998822138L, "img", "gif");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -249,7 +226,20 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testGIFFileBrowserCached() throws Exception {
+    void testSVGFileDirectStream() throws Exception {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
+                prepareRequestResponsePair(IMAGE24_PATH, 1489998822138L, "img", "svg");
+        MockSlingHttpServletRequest request = requestResponsePair.getLeft();
+        MockSlingHttpServletResponse response = requestResponsePair.getRight();
+        servlet.doGet(request, response);
+        ByteArrayInputStream stream = new ByteArrayInputStream(response.getOutput());
+        InputStream directStream =
+                this.getClass().getClassLoader().getResourceAsStream("image/Adobe_Systems_logo_and_wordmark.svg");
+        assertTrue(IOUtils.contentEquals(stream, directStream));
+    }
+
+    @Test
+    void testGIFFileBrowserCached() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE5_PATH, 1489998822138L, "img", "gif");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -261,7 +251,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testGIFUploadedToDAM() throws Exception {
+    void testGIFUploadedToDAM() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE6_PATH, "img", "gif");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -274,7 +264,20 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testGIFUploadedToDAMBrowserCached() throws Exception {
+    void testSVGUploadedToDAM() throws Exception {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
+                prepareRequestResponsePair(IMAGE25_PATH, "img", "svg");
+        MockSlingHttpServletRequest request = requestResponsePair.getLeft();
+        MockSlingHttpServletResponse response = requestResponsePair.getRight();
+        servlet.doGet(request, response);
+        ByteArrayInputStream stream = new ByteArrayInputStream(response.getOutput());
+        InputStream directStream =
+                this.getClass().getClassLoader().getResourceAsStream("image/Adobe_Systems_logo_and_wordmark.svg");
+        assertTrue(IOUtils.contentEquals(stream, directStream));
+    }
+
+    @Test
+    void testGIFUploadedToDAMBrowserCached() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE6_PATH, "img", "gif");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -286,14 +289,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testCorrectScalingPNGAssetWidth() throws Exception {
+    void testCorrectScalingPNGAssetWidth() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img.2000", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"2000"});
         servlet.doGet(request, response);
         InputStream directStream = this.getClass().getClassLoader().getResourceAsStream("image/Adobe_Systems_logo_and_wordmark.png");
         ByteArrayInputStream stream = new ByteArrayInputStream(response.getOutput());
@@ -302,14 +303,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testDAMFileUpscaledPNG() throws Exception {
+    void testDAMFileUpscaledPNG() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE0_PATH, "img.2500", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"2500"});
         servlet.doGet(request, response);
         InputStream directStream = this.getClass().getClassLoader().getResourceAsStream("image/Adobe_Systems_logo_and_wordmark.png");
         ByteArrayInputStream stream = new ByteArrayInputStream(response.getOutput());
@@ -318,14 +317,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testPNGFileDirectStream() throws Exception {
+    void testPNGFileDirectStream() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE3_PATH, "img.600", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"600"});
         servlet.doGet(request, response);
         ByteArrayInputStream stream = new ByteArrayInputStream(response.getOutput());
         BufferedImage image = ImageIO.read(stream);
@@ -334,54 +331,78 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testImageFileWithNegativeRequestedWidth() throws Exception {
+    void testWithNoImageNameResourceTypeImage() throws Exception {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(
+                IMAGE26_PATH, "coreimg.800", "png");
+        MockSlingHttpServletRequest request = requestResponsePair.getLeft();
+        MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"800"});
+        requestPathInfo.setSuffix("/1494867377756.png");
+        MockSlingHttpServletResponse response = requestResponsePair.getRight();
+        servlet.doGet(request, response);
+        assertEquals("Expected a 200 response code.", 200, response.getStatus());
+    }
+
+    @Test
+    void testWithNoImageNameFromTemplate() throws IOException {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(
+                PAGE, "coreimg", "png");
+        MockSlingHttpServletRequest request = requestResponsePair.getLeft();
+        MockSlingHttpServletResponse response = requestResponsePair.getRight();
+        MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
+
+        requestPathInfo.setSuffix(TEMPLATE_IMAGE_PATH.replace(TEMPLATE_PATH, "") + "/1490005239000.png");
+        servlet.doGet(request, response);
+        assertEquals("Expected a 200 response code.", 200, response.getStatus());
+    }
+
+    @Test
+    void testImageFileWithNegativeRequestedWidth() throws Exception {
         testNegativeRequestedWidth(IMAGE7_PATH);
     }
 
     @Test
-    public void testDAMAssetWithNegativeRequestedWidth() throws Exception {
+    void testDAMAssetWithNegativeRequestedWidth() throws Exception {
         testNegativeRequestedWidth(IMAGE8_PATH);
     }
 
     @Test
-    public void testDAMAssetCropScaling() throws Exception {
+    void testDAMAssetCropScaling() throws Exception {
         testCropScaling(IMAGE9_PATH, 1440, 1390, 515);
     }
 
     @Test
-    public void testDAMAssetCrop() throws Exception {
+    void testDAMAssetCrop() throws Exception {
         testCropScaling(IMAGE11_PATH, 1440, 1440, 1440);
     }
 
     @Test
-    public void testDAMAssetCropScalingWithRotation() throws Exception {
+    void testDAMAssetCropScalingWithRotation() throws Exception {
         testCropScaling(IMAGE13_PATH, 1440, 515, 1390);
     }
 
     @Test
-    public void testImageFileCropScaling() throws Exception {
+    void testImageFileCropScaling() throws Exception {
         testCropScaling(IMAGE10_PATH, 1440, 1390, 515);
     }
 
     @Test
-    public void testImageFileCrop() throws Exception {
+    void testImageFileCrop() throws Exception {
         testCropScaling(IMAGE12_PATH, 1440, 1440, 1440);
     }
 
     @Test
-    public void testImageFileCropScalingWithRotation() throws Exception {
+    void testImageFileCropScalingWithRotation() throws Exception {
         testCropScaling(IMAGE14_PATH, 1440, 515, 1390);
     }
 
     @Test
-    public void testImageWithCorrectLastModifiedSuffix() throws Exception {
+    void testImageWithCorrectLastModifiedSuffix() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(IMAGE19_PATH,
                 "img.800", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"800"});
         servlet.doGet(request, response);
         assertEquals("Expected a 200 response code.", 200, response.getStatus());
         assertEquals("Mon, 20 Mar 2017 10:20:39 GMT", response.getHeader(HttpConstants.HEADER_LAST_MODIFIED));
@@ -394,41 +415,35 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testImageWithIncorrectLastModifiedSuffix() throws Exception {
+    void testImageWithIncorrectLastModifiedSuffix() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(IMAGE19_PATH,
-                "img.800", "png");
+                "coreimg.800", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
         requestPathInfo.setSuffix("/42.png");
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
         servlet.doGet(request, response);
         assertEquals("Expected a 302 response code.", 302, response.getStatus());
         assertEquals("Expected redirect location with correct last modified suffix",
-                CONTEXT_PATH + "/content/test/jcr%3acontent/root/image19.img.800.png/1490005239000.png", response.getHeader("Location"));
+                CONTEXT_PATH + "/content/test/jcr%3acontent/root/image19.coreimg.800.png/1490005239000.png", response.getHeader("Location"));
     }
 
     @Test
-    public void testImageWithMissingLastModifiedSuffix() throws Exception {
+    void testImageWithMissingLastModifiedSuffix() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(IMAGE19_PATH,
-                "img.800", "png");
+                "coreimg.800", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
         MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
         requestPathInfo.setSuffix("");
         servlet.doGet(request, response);
         assertEquals("Expected a 302 response code.", 302, response.getStatus());
         assertEquals("Expected redirect location with correct last modified suffix",
-                CONTEXT_PATH + "/content/test/jcr%3acontent/root/image19.img.800.png/1490005239000.png", response.getHeader("Location"));
+                CONTEXT_PATH + "/content/test/jcr%3acontent/root/image19.coreimg.800.png/1490005239000.png", response.getHeader("Location"));
     }
 
     @Test
-    public void testFileReferencePriority() throws Exception {
+    void testFileReferencePriority() throws Exception {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(IMAGE20_PATH,
                 "img", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -443,7 +458,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testDifferentSuffixExtension() throws IOException {
+    void testDifferentSuffixExtension() throws IOException {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE3_PATH, 1490005239000L, "img.600", "png", "jpeg");
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
@@ -452,7 +467,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testInvalidSuffix() throws IOException {
+    void testInvalidSuffix() throws IOException {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(IMAGE3_PATH, "img.600", "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -472,8 +487,8 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
     }
 
     @Test
-    public void testImageFromTemplateStructureNodeNoLastModifiedInfo() throws IOException {
-        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(PAGE, "img",
+    void testImageFromTemplateStructureNodeNoLastModifiedInfo() throws IOException {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(PAGE, "coreimg",
                 "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
@@ -483,13 +498,13 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
         servlet.doGet(request, response);
         assertEquals("Expected a 302 response code.", 302, response.getStatus());
         assertEquals("Expected redirect location with correct last modified suffix",
-                CONTEXT_PATH + "/content/test.img.png/structure/jcr%3acontent/root/image_template/1490005239000.png",
+                CONTEXT_PATH + "/content/test.coreimg.png/structure/jcr%3acontent/root/image_template/1490005239000.png",
                 response.getHeader("Location"));
     }
 
     @Test
-    public void testImageFromTemplateStructureNodeOldLastModifiedInfo() throws IOException {
-        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(PAGE, "img",
+    void testImageFromTemplateStructureNodeOldLastModifiedInfo() throws IOException {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(PAGE, "coreimg",
                 "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
@@ -499,12 +514,12 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
         servlet.doGet(request, response);
         assertEquals("Expected a 302 response code.", 302, response.getStatus());
         assertEquals("Expected redirect location with correct last modified suffix",
-                CONTEXT_PATH + "/content/test.img.png/structure/jcr%3acontent/root/image_template/1490005239000.png",
+                CONTEXT_PATH + "/content/test.coreimg.png/structure/jcr%3acontent/root/image_template/1490005239000.png",
                 response.getHeader("Location"));
     }
 
     @Test
-    public void testImageFromTemplateStructureNode() throws IOException {
+    void testImageFromTemplateStructureNode() throws IOException {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair = prepareRequestResponsePair(PAGE, "img",
                 "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
@@ -522,16 +537,29 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
 
     }
 
+    @Test
+    void testHorizontalAndVerticalFlipWithDAMAsset() throws IOException {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
+                prepareRequestResponsePair(IMAGE22_PATH, 1494867377756L, "img.2000", "png");
+        testHorizontalAndVerticalFlip(requestResponsePair);
+    }
+
+    @Test
+    void testHorizontalAndVerticalFlipWithImageFile() throws IOException {
+        Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
+                prepareRequestResponsePair(IMAGE23_PATH, 1494867377756L, "img.2000", "png");
+        testHorizontalAndVerticalFlip(requestResponsePair);
+
+    }
+
     private void testNegativeRequestedWidth(String imagePath) throws IOException {
         Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair =
                 prepareRequestResponsePair(imagePath, "img.-1", "png");
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"-1"});
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
         servlet.doGet(request, response);
-        assertEquals(HttpServletResponse.SC_BAD_REQUEST, response.getStatus());
+        assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
     }
 
     private void testCropScaling(String imagePath, int requestedWidth, int expectedWidth, int expectedHeight) throws IOException {
@@ -539,15 +567,29 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
                 prepareRequestResponsePair(imagePath, "img." + requestedWidth, "png");
         MockSlingHttpServletRequest request = requestResponsePair.getLeft();
         MockSlingHttpServletResponse response = requestResponsePair.getRight();
-        ContentPolicyMapping mapping = request.getResource().adaptTo(ContentPolicyMapping.class);
-        ContentPolicy contentPolicy = mapping.getPolicy();
-        when(contentPolicyManager.getPolicy(request.getResource())).thenReturn(contentPolicy);
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"1440"});
         servlet.doGet(request, response);
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(response.getOutput()));
         assertEquals("Expected the cropped rectangle to have a 1390px width, since the servlet should not perform cropping upscaling.",
                 expectedWidth, image.getWidth());
         assertEquals("Expected the cropped rectangle to have a 515px height, since the servlet should not perform cropping upscaling.",
                 expectedHeight, image.getHeight());
+    }
+
+    private void testHorizontalAndVerticalFlip(Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> requestResponsePair) throws
+            IOException {
+        MockSlingHttpServletRequest request = requestResponsePair.getLeft();
+        MockSlingHttpServletResponse response = requestResponsePair.getRight();
+        context.contentPolicyMapping(ImageImpl.RESOURCE_TYPE, "allowedRenditionWidths", new String[] {"2000"});
+        servlet.doGet(request, response);
+        assertEquals("Expected a 200 response.",
+                HttpServletResponse.SC_OK, response.getStatus());
+        Layer layer = new Layer(this.getClass().getClassLoader().getResourceAsStream("image/Adobe_Systems_logo_and_wordmark.png"));
+        layer.flipHorizontally();
+        layer.flipVertically();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        layer.write(StandardImageHandler.PNG1_MIMETYPE, 1.0, outputStream);
+        assertArrayEquals(outputStream.toByteArray(), response.getOutput());
     }
 
     private Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> prepareRequestResponsePair(String resourcePath,
@@ -569,7 +611,7 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
                                                                                                        String requestExtension,
                                                                                                        String suffixExtension) {
         final MockSlingHttpServletRequest request =
-                new MockSlingHttpServletRequest(CONTEXT.resourceResolver(), CONTEXT.bundleContext());
+                new MockSlingHttpServletRequest(context.resourceResolver(), context.bundleContext());
         final MockSlingHttpServletResponse response = new MockSlingHttpServletResponse();
         Resource resource = resourceResolver.getResource(resourcePath);
         request.setResource(resource);
@@ -582,33 +624,10 @@ public class AdaptiveImageServletTest extends AbstractImageTest {
         SlingBindings bindings = new SlingBindings();
         bindings.put(SlingBindings.REQUEST, request);
         bindings.put(SlingBindings.RESPONSE, response);
-        bindings.put(SlingBindings.SLING, CONTEXT.slingScriptHelper());
+        bindings.put(SlingBindings.SLING, context.slingScriptHelper());
         bindings.put(SlingBindings.RESOLVER, resourceResolver);
         request.setAttribute(SlingBindings.class.getName(), bindings);
         return new RequestResponsePair(request, response);
-    }
-
-    private void setFinalStatic(Field field, Object newValue) throws Exception {
-        field.setAccessible(true);
-        // remove final modifier from field
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, newValue);
-    }
-
-    private void activateServlet(AdaptiveImageServlet servlet) {
-        servlet.activate(new AdaptiveImageServlet.Configuration() {
-            @Override
-            public Class<? extends Annotation> annotationType() {
-                return null;
-            }
-
-            @Override
-            public int defaultResizeWidth() {
-                return ADAPTIVE_IMAGE_SERVLET_DEFAULT_RESIZE_WIDTH;
-            }
-        });
     }
 
     private static class RequestResponsePair extends Pair<MockSlingHttpServletRequest, MockSlingHttpServletResponse> {

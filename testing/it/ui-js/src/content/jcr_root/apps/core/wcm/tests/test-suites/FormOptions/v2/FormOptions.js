@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Adobe Systems Incorporated
+ *  Copyright 2016 Adobe
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 /**
  * Tests for core form option
  */
-;(function(h, $){
+;(function(h, $) { // eslint-disable-line no-extra-semi
+    "use strict";
 
     // shortcut
     var c = window.CQ.CoreComponentsIT.commons;
@@ -26,31 +27,33 @@
     /**
      * v2 specifics
      */
-    var itemSelector ={
-        help: '.cmp-form-options__help-message',
-        checkbox: '.cmp-form-options__field--checkbox',
-        radio: '.cmp-form-options__field--radio',
-        dropDown: '.cmp-form-options__field--drop-down',
-        multiDropDown: '.cmp-form-options__field--multi-drop-down'
+    var selectors = {
+        help: ".cmp-form-options__help-message",
+        description: ".cmp-form-options__field-description",
+        checkbox: ".cmp-form-options__field--checkbox",
+        radio: ".cmp-form-options__field--radio",
+        dropDown: ".cmp-form-options__field--drop-down",
+        multiDropDown: ".cmp-form-options__field--multi-drop-down"
     };
+
     var tcExecuteBeforeTest = formOptionsV1.tcExecuteBeforeTest(c.rtFormOptions_v2, "core/wcm/tests/components/test-page-v2");
     var tcExecuteAfterTest = formOptionsV1.tcExecuteAfterTest();
 
     /**
      * The main test suite.
      */
-    new h.TestSuite('Form Options v2', {path: '/apps/core/wcm/test-suites/FormOptions/v2/FormOptions.js',
-        execBefore:c.tcExecuteBeforeTestSuite,
-        execInNewWindow : false})
+    new h.TestSuite("Form Options v2", { path: "/apps/core/wcm/test-suites/FormOptions/v2/FormOptions.js",
+        execBefore: c.tcExecuteBeforeTestSuite,
+        execInNewWindow: false })
 
         .addTestCase(formOptionsV1.checkMandatoryFields(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setTitle(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setElementName(tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setHelpMessage(itemSelector, tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setCheckbox(itemSelector, tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setRadioButton(itemSelector, tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setDropDown(itemSelector, tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setMultiSelectDropDown(itemSelector, tcExecuteBeforeTest, tcExecuteAfterTest))
+        .addTestCase(formOptionsV1.setHelpMessage(selectors, tcExecuteBeforeTest, tcExecuteAfterTest))
+        .addTestCase(formOptionsV1.setCheckbox(selectors, tcExecuteBeforeTest, tcExecuteAfterTest))
+        .addTestCase(formOptionsV1.setRadioButton(selectors, tcExecuteBeforeTest, tcExecuteAfterTest))
+        .addTestCase(formOptionsV1.setDropDown(selectors, tcExecuteBeforeTest, tcExecuteAfterTest))
+        .addTestCase(formOptionsV1.setMultiSelectDropDown(selectors, tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setActiveOptionForCheckbox(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setActiveOptionForRadioButton(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setActiveOptionForDropDown(tcExecuteBeforeTest, tcExecuteAfterTest))
@@ -58,7 +61,6 @@
         .addTestCase(formOptionsV1.setDisabledOptionForCheckbox(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setDisabedOptionForRadioButton(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(formOptionsV1.setDisabledOptionForDropDown(tcExecuteBeforeTest, tcExecuteAfterTest))
-        .addTestCase(formOptionsV1.setDisabledOptionForMultiSelectDropDown(tcExecuteBeforeTest, tcExecuteAfterTest))
-    ;
+        .addTestCase(formOptionsV1.setDisabledOptionForMultiSelectDropDown(tcExecuteBeforeTest, tcExecuteAfterTest));
 
 })(hobs, jQuery);

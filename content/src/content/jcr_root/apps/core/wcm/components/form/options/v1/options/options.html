@@ -1,5 +1,5 @@
 <!--/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ~ Copyright 2016 Adobe Systems Incorporated
+  ~ Copyright 2016 Adobe
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@
         <p class="help-block" data-sly-test="${options.helpMessage}">${options.helpMessage}</p>
         <div class="${options.type.value}-item" data-sly-repeat.optionItem="${options.items}">
             <label>
-              <input type="${options.type.value}" name="${options.name}" value="${optionItem.value}"
-                     checked="${optionItem.selected}" disabled="${optionItem.disabled}"/>
-              ${optionItem.text}
+                <input type="${options.type.value}" name="${options.name}" value="${optionItem.value}"
+                      checked="${optionItem.selected}" disabled="${optionItem.disabled}"/>
+                <span>${optionItem.text}</span>
             </label>
         </div>
     </fieldset>

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Adobe Systems Incorporated
+ *  Copyright 2016 Adobe
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 /**
  * Tests for the core form components
  */
-;(function(h, $) {
+;(function(h, $) { // eslint-disable-line no-extra-semi
+    "use strict";
 
     // shortcut
     var c = window.CQ.CoreComponentsIT.commons;
@@ -32,11 +33,10 @@
     /**
      * The main test suite.
      */
-    new h.TestSuite("Form Components v1",{path:"/apps/core/wcm/tests/test-suites/FormComponents/v1/FormComponents.js",
-        execBefore:c.tcExecuteBeforeTestSuite,
-        execInNewWindow : false})
+    new h.TestSuite("Form Components v1", { path: "/apps/core/wcm/tests/test-suites/FormComponents/v1/FormComponents.js",
+        execBefore: c.tcExecuteBeforeTestSuite,
+        execInNewWindow: false })
 
-        .addTestCase(formComponents.storeContent(tcExecuteBeforeTest, tcExecuteAfterTest))
-    ;
+        .addTestCase(formComponents.storeContent(tcExecuteBeforeTest, tcExecuteAfterTest));
 
 }(hobs, jQuery));

@@ -1,5 +1,5 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Copyright 2017 Adobe Systems Incorporated
+ ~ Copyright 2017 Adobe
  ~
  ~ Licensed under the Apache License, Version 2.0 (the "License");
  ~ you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+
+import javax.jcr.RepositoryException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.osgi.service.component.annotations.Component;
@@ -110,5 +112,10 @@ public class MockHtmlLibraryManager implements HtmlLibraryManager {
     @Override
     public Collection<ClientLibrary> getThemeLibraries(String[] strings, LibraryType libraryType, String s, boolean b) {
         return null;
+    }
+
+    @Override
+    public void invalidateOutputCache() throws RepositoryException {
+
     }
 }

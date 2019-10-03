@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 Adobe Systems Incorporated
+ * Copyright 2016 Adobe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-(function ($) {
-    'use strict';
+(function($) {
+    "use strict";
 
     function toggleInputs(isDecorative) {
         var alt = $(".cmp-image--editor-alt");

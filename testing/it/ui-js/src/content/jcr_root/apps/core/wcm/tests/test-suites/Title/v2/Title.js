@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Adobe Systems Incorporated
+ *  Copyright 2016 Adobe
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,27 +17,28 @@
 /**
  * Tests for the core title component.
  */
-;(function(h, $){
+;(function(h, $) { // eslint-disable-line no-extra-semi
+    "use strict";
 
     // shortcut
     var c = window.CQ.CoreComponentsIT.commons;
     var titleV1 = window.CQ.CoreComponentsIT.Title.v1;
-    var titleV2 = window.CQ.CoreComponentsIT.Title.v2;
 
     /**
      * v2 specifics
      */
-    var tcExecuteBeforeTest = titleV2.tcExecuteBeforeTest(c.rtTitle_v2, "core/wcm/tests/components/test-page-v2");
-    var tcExecuteAfterTest = titleV2.tcExecuteAfterTest(c.policyPath, c.policyAssignmentPath);
+    var tcExecuteBeforeTest = titleV1.tcExecuteBeforeTest(c.rtTitle_v2, "core/wcm/tests/components/test-page-v2");
+    var tcExecuteAfterTest = titleV1.tcExecuteAfterTest(c.policyPath, c.policyAssignmentPath);
 
     /**
      * The main test suite for Title component
      */
-    new h.TestSuite("Title v2", {path:"/apps/core/wcm/test-suites/core-components-it/v2/Title.js",
-        execBefore:c.tcExecuteBeforeTestSuite,
-        execInNewWindow : false})
-        //TODO: Removed for now as it not stable randomly failing
-        //.addTestCase(titleV1.tcSetTitleValueUsingInlineEditor(tcExecuteBeforeTest, tcExecuteAfterTest))
+    new h.TestSuite("Title v2", { path: "/apps/core/wcm/test-suites/core-components-it/v2/Title.js",
+        execBefore: c.tcExecuteBeforeTestSuite,
+        execInNewWindow: false })
+
+        // TODO: Removed for now as it not stable randomly failing
+        // .addTestCase(titleV1.tcSetTitleValueUsingInlineEditor(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(titleV1.tcSetTitleValueUsingConfigDialog(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(titleV1.tcCheckExistenceOfTitleTypes(tcExecuteBeforeTest, tcExecuteAfterTest))
         .addTestCase(titleV1.tcSetTitleType(tcExecuteBeforeTest, tcExecuteAfterTest))
@@ -45,5 +46,6 @@
             c.policyPath, c.policyAssignmentPath))
         .addTestCase(titleV1.tcCheckExistenceOfOneTypeUsingPolicy(tcExecuteBeforeTest, tcExecuteAfterTest, "/title", "core-component/components",
             c.policyPath, c.policyAssignmentPath))
-    ;
+        .addTestCase(titleV1.tcSetLink(tcExecuteBeforeTest, tcExecuteAfterTest));
+
 }(hobs, jQuery));
